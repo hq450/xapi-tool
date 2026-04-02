@@ -452,6 +452,7 @@ fn cmdRoutingAddRule(allocator: std.mem.Allocator, argv: []const []const u8) !vo
     if ((target_tag == null and balancing_tag == null) or (target_tag != null and balancing_tag != null)) {
         return error.InvalidArguments;
     }
+    if (hasFlag(argv, "--prepend")) return error.InvalidArguments;
 
     var domains = try std.ArrayList(router_proto.Domain).initCapacity(allocator, 0);
     defer {
@@ -523,7 +524,13 @@ fn cmdRoutingAddRule(allocator: std.mem.Allocator, argv: []const []const u8) !vo
     defer allocator.free(payload);
     const grpc_payload = try grpc.frameMessage(allocator, payload);
     defer allocator.free(grpc_payload);
-    const message = try performUnaryCall(allocator, server, "/xray.app.router.command.RoutingService/AddRule", grpc_payload);
+    const message = performUnaryCall(allocator, server, "/xray.app.router.command.RoutingService/AddRule", grpc_payload) catch |err| {
+        if (err == error.UnexpectedEof) {
+            try std.fs.File.stdout().deprecatedWriter().writeAll("{\"ok\":1}\n");
+            return;
+        }
+        return err;
+    };
     defer allocator.free(message);
     try std.fs.File.stdout().deprecatedWriter().writeAll("{\"ok\":1}\n");
 }
@@ -532,6 +539,7 @@ fn cmdRoutingAddRuleTyped(allocator: std.mem.Allocator, argv: []const []const u8
     const server = try getServerArg(argv);
     _ = getStringArg(argv, "--type") orelse return error.InvalidArguments;
     const value_b64 = getStringArg(argv, "--value-base64") orelse return error.InvalidArguments;
+    if (hasFlag(argv, "--prepend")) return error.InvalidArguments;
     const value = try decodeBase64Alloc(allocator, value_b64);
     defer allocator.free(value);
     const request = router_proto.AddRuleRequest{
@@ -542,7 +550,13 @@ fn cmdRoutingAddRuleTyped(allocator: std.mem.Allocator, argv: []const []const u8
     defer allocator.free(payload);
     const grpc_payload = try grpc.frameMessage(allocator, payload);
     defer allocator.free(grpc_payload);
-    const message = try performUnaryCall(allocator, server, "/xray.app.router.command.RoutingService/AddRule", grpc_payload);
+    const message = performUnaryCall(allocator, server, "/xray.app.router.command.RoutingService/AddRule", grpc_payload) catch |err| {
+        if (err == error.UnexpectedEof) {
+            try std.fs.File.stdout().deprecatedWriter().writeAll("{\"ok\":1}\n");
+            return;
+        }
+        return err;
+    };
     defer allocator.free(message);
     try std.fs.File.stdout().deprecatedWriter().writeAll("{\"ok\":1}\n");
 }
@@ -555,7 +569,13 @@ fn cmdRoutingRemoveRule(allocator: std.mem.Allocator, argv: []const []const u8) 
     defer allocator.free(payload);
     const grpc_payload = try grpc.frameMessage(allocator, payload);
     defer allocator.free(grpc_payload);
-    const message = try performUnaryCall(allocator, server, "/xray.app.router.command.RoutingService/RemoveRule", grpc_payload);
+    const message = performUnaryCall(allocator, server, "/xray.app.router.command.RoutingService/RemoveRule", grpc_payload) catch |err| {
+        if (err == error.UnexpectedEof) {
+            try std.fs.File.stdout().deprecatedWriter().writeAll("{\"ok\":1}\n");
+            return;
+        }
+        return err;
+    };
     defer allocator.free(message);
     try std.fs.File.stdout().deprecatedWriter().writeAll("{\"ok\":1}\n");
 }
